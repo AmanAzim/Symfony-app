@@ -1,3 +1,9 @@
 #index:
 #    path: /
 #    controller: App\Controller\DefaultController::index
+
+# Anotacations: old way of creating routes now we use Attributes which allows defining roiutes directly on the Controller class
+# app_index: 
+#   path: /
+#   controller: App\Controller\HelloController::index
+ 
