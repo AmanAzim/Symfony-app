@@ -6,7 +6,7 @@
 <div>
     {% if posts|length > 0 %}
         {% for key,post in posts %}
-            <a href="{{ path('app_micro_single_post', { id: post.id }) }}">
+            <a href="{{ path('app_micro_get_single_post', { id: post.id }) }}">
                 {{ post.title }}
             </a>
             <br />

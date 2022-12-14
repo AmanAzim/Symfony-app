@@ -8,6 +8,8 @@ use App\Repository\MicroPostRepository;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Symfony\Component\HttpFoundation\Request;
 
 class MicroPostController extends AbstractController
 {
@@ -19,11 +21,62 @@ class MicroPostController extends AbstractController
         ]);
     }
 
-    #[Route('/micro-post/{id}', name: 'app_micro_single_post')]
+    #[Route('/micro-post/{id}', name: 'app_micro_get_single_post')]
     public function showOne(MicroPost $post): Response //composer require sensio/framework-extra-bundle enabling this direct maping to post by id
     {
         return $this->render('micro_post/show.html.twig', [
             'post' => $post,
+        ]);
+    }
+
+    #[Route('/micro-post/add', name: 'app_micro_post_add', priority: 1)]
+    public function addMicroPost(Request $request, MicroPostRepository $posts): Response {
+        $microPost = new MicroPost();
+        $form = $this->createFormBuilder($microPost)
+        ->add('title')
+        ->add('text') // this fields must match the MicroPost entity fields
+        // ->add('submit', SubmitType::class, ['label' => 'Save'])
+        ->getForm();
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+            $data->setCreatedAt(new DateTime());
+
+            $posts->save($data, true);
+
+            $this->addFlash('success', 'post added !');
+
+            return $this->redirectToRoute('app_micro_post'); //return $this->redirect('/micro-post');
+        }
+
+        return $this->renderForm('micro_post/addPost.html.twig', [
+            'form' => $form
+        ]);
+    }
+
+    #[Route('/micro-post/edit/{id}', name: 'app_micro_post_edit', priority: 1)]
+    public function editMicroPost(MicroPost $post, Request $request, MicroPostRepository $posts): Response {
+        $form = $this->createFormBuilder($post)
+        ->add('title')
+        ->add('text')
+        ->getForm();
+
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $data = $form->getData();
+
+            $posts->save($data, true);
+
+            $this->addFlash('success', 'post updated !');
+
+            return $this->redirectToRoute('app_micro_post'); //return $this->redirect('/micro-post');
+        }
+
+        return $this->renderForm('micro_post/addPost.html.twig', [
+            'form' => $form
         ]);
     }
 }
