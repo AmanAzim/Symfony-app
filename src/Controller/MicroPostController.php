@@ -3,22 +3,25 @@
 namespace App\Controller;
 
 use DateTime;
+use App\Entity\Comment;
 use App\Entity\MicroPost;
+use App\Form\CommentType;
 use App\Form\MicroPostType;
+use App\Repository\CommentRepository;
 use App\Repository\MicroPostRepository;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class MicroPostController extends AbstractController
 {
     #[Route('/micro-post', name: 'app_micro_post')]
-    public function index(MicroPostRepository $post): Response
+    public function index(MicroPostRepository $microPostRepo): Response
     {
         return $this->render('micro_post/index.html.twig', [
-            'posts' => $post->findAll(),
+            'posts' => $microPostRepo->findAllWithComments(),
         ]);
     }
 
@@ -31,7 +34,7 @@ class MicroPostController extends AbstractController
     }
 
     #[Route('/micro-post/add', name: 'app_micro_post_add', priority: 1)]
-    public function addMicroPost(Request $request, MicroPostRepository $posts): Response {
+    public function addMicroPost(Request $request, MicroPostRepository $microPostRepo): Response {
         $microPost = new MicroPost();
         // $form = $this->createFormBuilder($microPost)
         // ->add('title')
@@ -44,9 +47,9 @@ class MicroPostController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            // $data->setCreatedAt(new DateTime());
+            $data->setCreatedAt(new DateTime());
 
-            $posts->save($data, true);
+            $microPostRepo->save($data, true);
 
             $this->addFlash('success', 'post added !');
 
@@ -59,7 +62,7 @@ class MicroPostController extends AbstractController
     }
 
     #[Route('/micro-post/edit/{id}', name: 'app_micro_post_edit', priority: 1)]
-    public function editMicroPost(MicroPost $post, Request $request, MicroPostRepository $posts): Response {
+    public function editMicroPost(MicroPost $post, Request $request, MicroPostRepository $microPostRepo): Response {
         $form = $this->createForm(MicroPostType::class, $post);
 
         $form->handleRequest($request);
@@ -67,15 +70,38 @@ class MicroPostController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
 
-            $posts->save($data, true);
+            $microPostRepo->save($data, true);
 
             $this->addFlash('success', 'post updated !');
 
             return $this->redirectToRoute('app_micro_post'); //return $this->redirect('/micro-post');
         }
 
-        return $this->renderForm('micro_post/addPost.html.twig', [
+        return $this->renderForm('micro_post/editPost.html.twig', [
             'form' => $form
+        ]);
+    }
+
+
+    #[Route('/micro-post/{id}/comment', name: 'app_micro_post_add_comment')]
+    public function addComment(Request $request, MicroPost $post, CommentRepository $commentRepo): Response {
+        $form = $this->createForm(CommentType::class, new Comment());
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $comment = $form->getData();
+            $comment->setMicroPost($post); // stablish relation ship with the particular post
+
+            $commentRepo->save($comment, true);
+
+            $this->addFlash('success', 'Comment added !');
+
+            return $this->redirectToRoute('app_micro_get_single_post', [ 'id' => $post->getId() ]);
+        }
+
+        return $this->renderForm('micro_post/comment.html.twig', [
+            'form' => $form,
+            'post' => $post,
         ]);
     }
 }
