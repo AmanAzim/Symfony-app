@@ -35,6 +35,8 @@ class MicroPostController extends AbstractController
 
     #[Route('/micro-post/add', name: 'app_micro_post_add', priority: 1)]
     public function addMicroPost(Request $request, MicroPostRepository $microPostRepo): Response {
+        $user = $this->getUser();// this is available because of extending AbstractController class// Will return only the authenticated user
+
         $microPost = new MicroPost();
         // $form = $this->createFormBuilder($microPost)
         // ->add('title')
@@ -46,10 +48,11 @@ class MicroPostController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
-            $data->setCreatedAt(new DateTime());
+            $microPost = $form->getData();
+            $microPost->setAuthor($user);
+            $microPost->setCreatedAt(new DateTime());
 
-            $microPostRepo->save($data, true);
+            $microPostRepo->save($microPost, true);
 
             $this->addFlash('success', 'post added !');
 
@@ -92,7 +95,7 @@ class MicroPostController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $comment = $form->getData();
             $comment->setMicroPost($post); // stablish relation ship with the particular post
-
+            $comment->setAuthor($this->getUser());
             $commentRepo->save($comment, true);
 
             $this->addFlash('success', 'Comment added !');

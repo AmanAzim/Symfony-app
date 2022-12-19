@@ -17,6 +17,13 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            form_login:
+                login_path: app_login # the path where user will be redirected if they try to visit any protected page
+                check_path: app_login # the route where all the credentials will be sent from user input of app_login path (same controller in our case)
+
+            logout:
+                path: app_logout # we just need to create acontroller leaving the unction empty symfony will do the work
+                target: app_login
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#the-firewall

@@ -36,9 +36,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\ManyToMany(targetEntity: MicroPost::class, mappedBy: 'likedBy')]
     private Collection $liked;
 
+    #[ORM\OneToMany(mappedBy: 'author', targetEntity: MicroPost::class)]
+    private Collection $microPosts;
+
+    #[ORM\OneToMany(mappedBy: 'author', targetEntity: Comment::class)]
+    private Collection $comments;
+
     public function __construct()
     {
         $this->liked = new ArrayCollection();
+        $this->microPosts = new ArrayCollection();
+        $this->comments = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -169,6 +177,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->liked->removeElement($liked)) {
             $liked->removeLikedBy($this);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, MicroPost>
+     */
+    public function getMicroPosts(): Collection
+    {
+        return $this->microPosts;
+    }
+
+    public function addMicroPost(MicroPost $microPost): self
+    {
+        if (!$this->microPosts->contains($microPost)) {
+            $this->microPosts->add($microPost);
+            $microPost->setAuthor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeMicroPost(MicroPost $microPost): self
+    {
+        if ($this->microPosts->removeElement($microPost)) {
+            // set the owning side to null (unless already changed)
+            if ($microPost->getAuthor() === $this) {
+                $microPost->setAuthor(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    public function addComment(Comment $comment): self
+    {
+        if (!$this->comments->contains($comment)) {
+            $this->comments->add($comment);
+            $comment->setAuthor($this);
+        }
+
+        return $this;
+    }
+
+    public function removeComment(Comment $comment): self
+    {
+        if ($this->comments->removeElement($comment)) {
+            // set the owning side to null (unless already changed)
+            if ($comment->getAuthor() === $this) {
+                $comment->setAuthor(null);
+            }
         }
 
         return $this;
