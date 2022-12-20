@@ -1,5 +1,5 @@
 security:
-    enable_authenticator_manager: true
+    # enable_authenticator_manager: true
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
@@ -17,6 +17,7 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            user_checker: security.user_checker
             form_login:
                 login_path: app_login # the path where user will be redirected if they try to visit any protected page
                 check_path: app_login # the route where all the credentials will be sent from user input of app_login path (same controller in our case)
@@ -24,6 +25,7 @@ security:
             logout:
                 path: app_logout # we just need to create acontroller leaving the unction empty symfony will do the work
                 target: app_login
+
 
             # activate different ways to authenticate
             # https://symfony.com/doc/current/security.html#the-firewall
@@ -36,6 +38,11 @@ security:
     access_control:
         # - { path: ^/admin, roles: ROLE_ADMIN }
         # - { path: ^/profile, roles: ROLE_USER }
+
+    role_hierarchy:
+        ROLE_ADMIN: [ROLE_EDITOR]
+        ROLE_EDITOR: [ROLE_COMMENTER] # other roles it should inherit
+        ROLE_COMMENTER: [ROLE_USER]
 
 when@test:
     security:

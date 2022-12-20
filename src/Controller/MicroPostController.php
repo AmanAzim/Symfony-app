@@ -9,12 +9,14 @@ use App\Form\CommentType;
 use App\Form\MicroPostType;
 use App\Repository\CommentRepository;
 use App\Repository\MicroPostRepository;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
+#[IsGranted('IS_AUTHENTICATED_FULLY')] // now every single path will require this role
 class MicroPostController extends AbstractController
 {
     #[Route('/micro-post', name: 'app_micro_post')]
@@ -26,6 +28,7 @@ class MicroPostController extends AbstractController
     }
 
     #[Route('/micro-post/{id}', name: 'app_micro_get_single_post')]
+    #[IsGranted(MicroPost::VIEW, 'post')] // if the user can perform VIEW on the subject 'post' 
     public function showOne(MicroPost $post): Response //composer require sensio/framework-extra-bundle enabling this direct maping to post by id
     {
         return $this->render('micro_post/show.html.twig', [
@@ -34,7 +37,10 @@ class MicroPostController extends AbstractController
     }
 
     #[Route('/micro-post/add', name: 'app_micro_post_add', priority: 1)]
+    #[IsGranted('ROLE_WRITER')]
     public function addMicroPost(Request $request, MicroPostRepository $microPostRepo): Response {
+       // $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY'); // alternative of  #[IsGranted('IS_AUTHENTICATED_FULLY')]
+
         $user = $this->getUser();// this is available because of extending AbstractController class// Will return only the authenticated user
 
         $microPost = new MicroPost();
@@ -50,7 +56,6 @@ class MicroPostController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $microPost = $form->getData();
             $microPost->setAuthor($user);
-            $microPost->setCreatedAt(new DateTime());
 
             $microPostRepo->save($microPost, true);
 
@@ -65,10 +70,13 @@ class MicroPostController extends AbstractController
     }
 
     #[Route('/micro-post/edit/{id}', name: 'app_micro_post_edit', priority: 1)]
+    #[IsGranted(MicroPost::EDIT, 'post')] 
     public function editMicroPost(MicroPost $post, Request $request, MicroPostRepository $microPostRepo): Response {
         $form = $this->createForm(MicroPostType::class, $post);
 
         $form->handleRequest($request);
+
+        //$this->denyAccessUnlessGranted(MicroPost::EDIT, $post); 
 
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
@@ -88,6 +96,7 @@ class MicroPostController extends AbstractController
 
 
     #[Route('/micro-post/{id}/comment', name: 'app_micro_post_add_comment')]
+    #[IsGranted('ROLE_COMMENTER')]
     public function addComment(Request $request, MicroPost $post, CommentRepository $commentRepo): Response {
         $form = $this->createForm(CommentType::class, new Comment());
         $form->handleRequest($request);
