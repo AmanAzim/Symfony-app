@@ -3,17 +3,19 @@
 namespace App\Controller;
 
 use DateTime;
+use App\Entity\User;
 use App\Entity\Comment;
 use App\Entity\MicroPost;
 use App\Form\CommentType;
 use App\Form\MicroPostType;
+use App\Repository\UserRepository;
 use App\Repository\CommentRepository;
 use App\Repository\MicroPostRepository;
-use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Form\Extension\Core\Type\SubmitType;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[IsGranted('IS_AUTHENTICATED_FULLY')] // now every single path will require this role
@@ -24,6 +26,26 @@ class MicroPostController extends AbstractController
     {
         return $this->render('micro_post/index.html.twig', [
             'posts' => $microPostRepo->findAllWithComments(),
+        ]);
+    }
+
+    #[Route('/micro-post/top-likes', name: 'app_micro_post_topLiked')]
+    public function topLiked(MicroPostRepository $microPostRepo): Response
+    {
+        return $this->render('micro_post/top_liked.html.twig', [
+            'posts' => $microPostRepo->findAllWithMinLikes(2),
+        ]);
+    }
+
+    #[Route('/micro-post/follows', name: 'app_micro_post_follows')]
+    public function followedUsersPosts(MicroPostRepository $microPostRepo): Response
+    { 
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        $followedUsers = $currentUser->getFollows();
+  
+        return $this->render('micro_post/follow_posts.html.twig', [
+            'posts' => $microPostRepo->findAllByAuthors($followedUsers),
         ]);
     }
 

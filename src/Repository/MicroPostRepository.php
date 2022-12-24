@@ -2,9 +2,12 @@
 
 namespace App\Repository;
 
+use App\Entity\User;
 use App\Entity\MicroPost;
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 
 /**
  * @extends ServiceEntityRepository<MicroPost>
@@ -41,13 +44,72 @@ class MicroPostRepository extends ServiceEntityRepository
 
     public function findAllWithComments(): Array
     {
-        return $this->createQueryBuilder('microPost')
-            ->addSelect('microPostComments')
-            ->leftJoin('microPost.comments', 'microPostComments')
-            ->orderBy('microPost.createdAt', 'DESC')
+        return $this->getFindAllQuery(true)
             ->getQuery()
-            ->getResult()
-        ;
+            ->getResult();
+    }
+
+    public function findAllByAuthor(int | User $author): Array
+    {
+        return $this->getFindAllQuery(withComments: true, withLikes: true, withAuthor: true, withProfile: true)
+            ->where('microPost.author = :author')
+            ->setParameter('author', $author instanceof User ? $author->getId() : $author)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findAllWithMinLikes(int $minLikes): Array
+    {
+        $idList = $this->getFindAllQuery(withLikes: true)
+            ->select('microPost.id')
+            ->groupBy('microPost.id')
+            ->having('COUNT(microPostLikes) >= :minLikes')
+            ->setParameter('minLikes', $minLikes)
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        return $this->getFindAllQuery(withComments: true, withLikes: true, withAuthor: true, withProfile: true)
+            ->where('microPost.id in (:idList)')
+            ->setParameter('idList',  $idList)
+            ->getQuery()
+            ->getResult();
+    }
+
+    public function findAllByAuthors(Collection | array $authors): Array
+    {
+        return $this->getFindAllQuery(withComments: true, withLikes: true, withAuthor: true, withProfile: true)
+            ->where('microPost.author in (:authors)')
+            ->setParameter('authors', $authors)
+            ->getQuery()
+            ->getResult();
+    }
+
+
+    public function getFindAllQuery(bool $withComments = false, bool $withLikes = false, bool $withAuthor = false, bool $withProfile = false): QueryBuilder
+    {
+        $query = $this->createQueryBuilder('microPost');
+
+        if ($withComments) {
+            $query->leftJoin('microPost.comments', 'microPostComments')
+            ->addSelect('microPostComments');
+        }
+
+        if ($withLikes) {
+            $query->leftJoin('microPost.likedBy', 'microPostLikes')
+            ->addSelect('microPostLikes');
+        }
+
+        if ($withAuthor || $withProfile) {
+            $query->leftJoin('microPost.author', 'microPostAuthor')
+            ->addSelect('microPostAuthor');
+        }
+
+        if ($withProfile) {
+            $query->leftJoin('microPostAuthor.userProfile', 'authorProfile')
+            ->addSelect('authorProfile');
+        }
+
+        return $query->orderBy('microPost.createdAt', 'DESC');
     }
 
 //    /**

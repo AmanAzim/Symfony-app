@@ -51,11 +51,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $bannedUntil = null;
 
+    #[ORM\ManyToMany(targetEntity: self::class, inversedBy: 'followedBy')]
+    #[ORM\JoinTable('followers')] // updating name of the generated relational table
+    private Collection $follows;
+
+    #[ORM\ManyToMany(targetEntity: self::class, mappedBy: 'follows')]
+    private Collection $followedBy;
+
     public function __construct()
     {
         $this->liked = new ArrayCollection();
         $this->microPosts = new ArrayCollection();
         $this->comments = new ArrayCollection();
+        $this->follows = new ArrayCollection();
+        $this->followedBy = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -275,6 +284,57 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setBannedUntil(?\DateTimeInterface $bannedUntil): self
     {
         $this->bannedUntil = $bannedUntil;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public function getFollows(): Collection
+    {
+        return $this->follows;
+    }
+
+    public function addFollow(self $follow): self
+    {
+        if (!$this->follows->contains($follow)) {
+            $this->follows->add($follow);
+        }
+
+        return $this;
+    }
+
+    public function unFollow(self $follow): self
+    {
+        $this->follows->removeElement($follow);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, self>
+     */
+    public function getFollowedBy(): Collection
+    {
+        return $this->followedBy;
+    }
+
+    public function addFollowedBy(self $followedBy): self
+    {
+        if (!$this->followedBy->contains($followedBy)) {
+            $this->followedBy->add($followedBy);
+            $followedBy->addFollow($this);
+        }
+
+        return $this;
+    }
+
+    public function removeFollowedBy(self $followedBy): self
+    {
+        if ($this->followedBy->removeElement($followedBy)) {
+            $followedBy->unFollow($this);
+        }
 
         return $this;
     }
