@@ -42,12 +42,18 @@ class MicroPostVoter extends Voter
         $isUserTheAuthor = $subject->getAuthor()->getId() === $user->getId();
         $isEditor = $this->security->isGranted('ROLE_EDITOR');
 
+        $isCurrentUserIsFollowingAuthor = $subject->getAuthor()->getFollowedBy()->contains($user);
+
         // ... (check conditions and return true to grant permission) ...
         switch ($attribute) {
             case MicroPost::EDIT:
                 return $isAuthenticated && ($isUserTheAuthor || $isEditor);
             case MicroPost::VIEW:
-                return true;
+                if (!$subject->isExtraPrivacy()) {
+                    return true;
+                }
+
+                return $isAuthenticated && ($isUserTheAuthor || $isCurrentUserIsFollowingAuthor);
         }
 
         return false;
